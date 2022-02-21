@@ -86,11 +86,209 @@ VisualPoint klassen tar inn en vector av Vertexer, vertexene blir vist som hvite
 
     for (auto i = 0; i < points.size(); i++) 
     {
-        mMap.insert(std::pair<std::string, VisualObject*>{ std::to_string(i), new VisualPoint(points)});
+        mMap.insert(std::pair<std::string, VisualObject*>
+{ std::to_string(i), new VisualPoint(points)});
     }
-    }
-
+    
+\end{lstlisting}
 \centering
 \includegraphics[width=\textwidth]{kurve1}
+
+
+\section{Oppgave 4.6.7}
+Punkter: ( 0.9, 0.6), ( 2.6, -1.1), (3.5, 3.7), (6.9, 4.2) 
+\newline
+
+\begin{equation*}
+A = \begin{bmatrix} 0.729  & 0.81 & 0.9 & 1 \\  17.576 & 6.76 & 9.9 & 1 \\  42.875 & 12.25 & 3.9 & 1 \\  328.509 & 47.61 & 6.9 & 1 \end{bmatrix} B = \begin{bmatrix} 0.6 \\ -1.1 \\ 3.7 \\ 4.2 \end{bmatrix}\end{equation*}
+\newline
+\begin{equation*}
+A^{-1} = \begin{bmatrix} 0.017779746 & 0.005580521 & -0.029978972 & 0.006618704 \\  -0.139178717 & -0.056805602 & 0.221551832 & -0.025567513 \\ 
+ -0.052380225 & 0.13821981 & -0.090353074 & 0.004513489 \\  1.146915528 & -0.082453491 & -0.076284547 & 0.01182251 \end{bmatrix}
+\end{equation*}
+\newline
+$x = A^{-1}*B = $
+\begin{equation*}
+\begin{bmatrix} 0.017779746 & 0.005580521 & -0.029978972 & 0.006618704 \\  -0.139178717 & -0.056805602 & 0.221551832 & -0.025567513 \\ 
+ -0.052380225 & 0.13821981 & -0.090353074 & 0.004513489 \\  1.146915528 & -0.082453491 & -0.076284547 & 0.01182251  \end{bmatrix} \begin{bmatrix}   0.6 \\ -1.1 \\ 3.7 \\ 4.2 \end{bmatrix}
+\newline
+= \begin{bmatrix}  -0.078594 \\  0.691337 \\-0.498819 \\  0.546249 \end{bmatrix} 
+\newline
+\newline
+f(x) = -0.78x^{3} + 0,69x^{2}-0,49x + 0,54
+\end{equation*}
+
+\section{4.6.7 Visualisering}
+
+her bruker jeg cubicpolimal for å sette punktene;
+\begin{lstlisting}[language=C++, caption={cubicpolynomial.cpp}]
+CubicPolynomial::CubicPolynomial(double a, double b, double c, double d, float dx)
+{
+   
+    for (auto x = -10.f; x <= 10; x += 0.1)
+    {
+        auto y = p(a, b, c, d, x);
+        mVertices.push_back(Vertex(x, y, 0, 0, 1, 0));
+    }
+    mMatrix.setToIdentity();
+
+}
+
+double CubicPolynomial::p(double a, double b, double c, double d, double x)
+{
+    return a * x * x * x + b * x * x + c * x + d;
 \end{lstlisting}
+\begin{lstlisting}[language=C++, caption={renderwindow.cpp}]
+    mMap.insert(std::pair<std::string, VisualObject*>{"CubicPolynomial", new CubicPolynomial(-0.78, 0.69, -0.49, 0.54, 0.1f)});
+    std::vector<Vertex> points2;
+    points2.push_back(Vertex{ 0.9f, 0.6f, 0 });
+    points2.push_back(Vertex{ 2.6f, -1.1f, 0 });
+    points2.push_back(Vertex{ 3.5f, 3.7f, 0 });
+    points2.push_back(Vertex{ 6.9f, 4.2, 0 });
+
+    for (auto i = 0; i < points2.size(); i++) 
+    {
+        mMap.insert(std::pair<std::string, VisualObject*>{ std::to_string(i * 10), new VisualPoint(points2)});
+    }
+\end{lstlisting}
+
+\centering
+\includegraphics[width=\textwidth]{kurve2}
+ser ikke riktig ut, er ganske sikker på at utregningen er riktig, kan være metodikkebn eller koden
+
+\section{Oppgave 4.11.6}
+Bezier kurve
+
+\begin{lstlisting}[language=C++, caption={beziercurve.h}]
+#ifndef BEZIERCURVE_H
+#define BEZIERCURVE_H
+
+#include "visualobject.h"
+#include "visualpoint.h"
+#include <vector>
+class BezierCurve : public VisualObject
+{
+public:
+	BezierCurve(std::vector<QVector3D> controlPoints);
+	void init(GLint matrixUniform) override;
+	void draw() override;
+	int d = 3;
+private:
+	std::vector<QVector3D> mControlPoints;
+	std::vector<Vertex> mControlPointsVertices;
+	VisualPoint* mControlPointVisual;
+	QVector3D EvaluateBezier(float t);
+};
+
+#endif // BEZIERCURVE_H
+\end{lstlisting}
+\begin{lstlisting}[language=C++, caption={beziercurve.cpp}]
+#include "beziercurve.h"
+
+BezierCurve::BezierCurve(std::vector<QVector3D> controlPoints) 
+{
+    mControlPoints = controlPoints;
+    //Create vertexs from control points
+    for (auto it : mControlPoints) 
+    {
+        mControlPointsVertices.push_back(Vertex(it.x(), it.y(), it.z(), 1.f, 1.f, 1.f));
+    }
+    //Visualpoint for displaying control points
+    mControlPointVisual = new VisualPoint(mControlPointsVertices);
+
+    for (float t{}; t < 1.00f; t += 0.01f) 
+    {
+        QVector3D point = EvaluateBezier(t);
+
+        mVertices.push_back(Vertex(point.x(), point.y(), point.z()));
+    }
+}
+
+void BezierCurve::init(GLint matrixUniform)
+{
+    mMatrixUniform = matrixUniform;
+    initializeOpenGLFunctions();
+
+    glGenVertexArrays(1, &mVAO);
+    glBindVertexArray(mVAO);
+
+    // Vertex buffer object(VBO), holding vertices
+    glGenBuffers(1, &mVBO);
+    glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+    glBufferData(GL_ARRAY_BUFFER,
+        mVertices.size() * sizeof(Vertex),
+        mVertices.data(),
+        GL_STATIC_DRAW
+    );
+
+    // Vertices
+    glBindBuffer(GL_ARRAY_BUFFER, mVBO);
+    glVertexAttribPointer(
+        0,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(Vertex),
+        reinterpret_cast<GLvoid*>(0));
+    glEnableVertexAttribArray(0);
+
+    // Colors
+    glVertexAttribPointer(
+        1,
+        3,
+        GL_FLOAT,
+        GL_FALSE,
+        sizeof(Vertex),
+        reinterpret_cast<GLvoid*>(3 * sizeof(GLfloat))
+    );
+
+    glEnableVertexAttribArray(1);
+
+    glBindVertexArray(0);
+
+    if (mControlPointVisual)
+        mControlPointVisual->init(matrixUniform);
+}
+
+void BezierCurve::draw() 
+{
+    initializeOpenGLFunctions();
+
+    glBindVertexArray(mVAO);
+    glUniformMatrix4fv(mMatrixUniform, 1, GL_FALSE, mMatrix.constData());
+    glDrawArrays(GL_LINE_STRIP, 0, mVertices.size());
+
+    if (mControlPointVisual)
+        mControlPointVisual->draw();
+}
+
+QVector3D BezierCurve::EvaluateBezier(float t)
+{
+    std::vector<QVector3D> temp;
+
+    //Gets the control points
+    for (int i = 0; i < mControlPoints.size(); i++)
+    {
+        temp.push_back(mControlPoints[i]);
+    }
+    for (int k = temp.size() - 1; k > 0; k--)
+    {
+        for (int i = 0; i < k; i++)
+            //Bezier algoritmen
+            temp[i] = temp[i] * (1 - t) + temp[i + 1] * t;
+    }
+    return temp[0];
+}
+\end{lstlisting}
+\begin{lstlisting}[language=C++, caption={renderwindow.cpp}]
+    std::vector<QVector3D> controlPoints;
+    controlPoints.push_back(QVector3D(0.f, 0.f, 0.f));
+    controlPoints.push_back(QVector3D(2.f, 3.f, 0.f));
+    controlPoints.push_back(QVector3D(4.f, -3.f, 0.f));
+    controlPoints.push_back(QVector3D(6.f, 3.f, 0.f));
+    mMap.insert(std::pair<std::string, VisualObject*>{"BezierCurve", new BezierCurve(controlPoints)});
+\end{lstlisting}
+bilde av kurven:
+\centering
+\includegraphics[width=\textwidth]{kurve3}
 \end{document}
